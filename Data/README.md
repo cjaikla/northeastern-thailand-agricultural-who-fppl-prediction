@@ -1,6 +1,7 @@
 # Data Folder
 
-This folder contains information about the training and test datasets used in this project.  
+This folder does not contain raw data files.  
+To run the notebooks in the `analysis` folder, please download the training and test datasets as described below.
 
 ## Training Data
 - Raw sequence reads for the **training dataset** are publicly available in the NCBI Sequence Read Archive (SRA) under **BioProject PRJNA1233617**.  
