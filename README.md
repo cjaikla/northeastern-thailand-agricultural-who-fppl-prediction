@@ -48,10 +48,10 @@ To predict absence environmental conditions of human pathogenic fungi, follow th
 
 This workflow uses R fo data processing and analysis. 
 
-1. **Download Data:**
+1. **Download Data:**  
     See `data/README.md` for instructions on downloading the required training and test datasets.
 
-2. **Run R Scripts:**
+2. **Run R Scripts:**  
     Open and run the R scripts in the `analysis/r_scripts` folder.
     
 ## Citation
