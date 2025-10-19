@@ -14,9 +14,10 @@ This repository provides notebooks and scripts for analyzing environmental and f
 
 ## Repository Structure
 
-- `analysis/` — Jupyter notebooks and scripts for data processing, statistical analysis, and modeling.
+- `analysis/` — IPython notebooks and scripts for data processing, statistical analysis, and modeling.
     - `data_prep/` — Data cleaning, integration, and preparation for downstream analysis.
     - `model/` — Machine learning model training, evaluation, and prediction workflows.
+    - `r_scripts/` -  R scripts for exploratory data analysis and distribution assessment of environmental and fungal community variables. 
     - `scripts/` — Helper functions and reusable Python scripts used by the notebooks.
     - `statistical_analysis/` — Statistical summaries, exploratory analysis, and visualization.
 - `data/` — Placeholder for input data (not included; see instructions in `data/README.md`).
@@ -24,6 +25,12 @@ This repository provides notebooks and scripts for analyzing environmental and f
 - `requirements.txt` — List of required Python packages.
 
 ## Getting Started
+
+### Absence Condition Models
+
+This workflow uses Python for data processing, modeling, and prediction.
+
+To predict absence environmental conditions of human pathogenic fungi, follow the following steps:
 
 1. **Download Data:**  
     See `data/README.md` for instructions on downloading the required training and test datasets.
@@ -33,7 +40,20 @@ This repository provides notebooks and scripts for analyzing environmental and f
 
 3. **Run Notebooks:**  
     Open and run the notebooks in the `analysis` folder to reproduce the analysis and results.
+    
+   3.1 Preparing datasets by using notebooks in `analysis/data_prep` folder.
+   3.2 Creating models by using a notebook in `analysis/model` folder.
 
+### Fungal Metabarcoding Insights
+
+This workflow uses R fo data processing and analysis. 
+
+1. **Download Data:**
+    See `data/README.md` for instructions on downloading the required training and test datasets.
+
+2. **Run R Scripts:**
+    Open and run the R scripts in the `analysis/r_scripts` folder.
+    
 ## Citation
 
 If you use this code or data, please cite:

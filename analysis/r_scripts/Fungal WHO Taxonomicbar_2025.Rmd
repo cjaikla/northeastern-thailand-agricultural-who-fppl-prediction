@@ -1,0 +1,292 @@
+---
+title: "Taxonomic barplots diagram data 2025"
+author: "Niar Ibrahim"
+date: "April 12, 2025"
+output:
+  word_document: default
+  html_document: default
+---
+
+
+```{r}
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("phyloseq")
+```
+
+
+
+#Load all Packages
+```{r warning=FALSE, message=FALSE}
+library(ape)
+library(vegan)
+library(plyr)
+library(dplyr)
+library(scales)
+library(grid)
+library(reshape2)
+library(phyloseq)
+library(magrittr)
+library(ggplot2)
+library(ggpubr)
+library(data.table)
+library(tidyr)
+library(tidyverse)
+library(multcompView)
+library(VennDiagram)
+library(car)
+library(microbiome)
+```
+
+###STEP1: Import ASV table for analysis using Phyloseq
+```{r}
+otus <- read.table("SakhonNakhonApril2025.final.txt",header=T,sep="\t",row.names=1)
+otumat <- as(as.matrix(otus), "matrix")
+OTU <- otu_table(otumat, taxa_are_rows = TRUE)
+```
+
+
+###STEP2: Import taxonomy table for analysis using Phyloseq
+```{r}
+taxmat <- read.table("SakhonNakhonApril2025.taxonomy.fix.txt", header=T,sep="\t",row.names=1)
+taxmat <- as(as.matrix(taxmat),"matrix")
+TAX <- tax_table(taxmat)
+```
+```{r}
+TAX
+```
+
+
+###STEP3: Import mapping file for analysis using Phyloseq
+
+1.Check mapping file before import to R, R will automatically change sample name that starts with number or contain “-” in sample name. If you get error in this step, you should check sample name first. 
+
+2.First column of first row should not start with #, R will not read the first row that starts with #
+
+3. You can choose which samples to include in analysis by indicating specific group in the column
+
+```{r}
+meta <- read.table("SakhonNakhonApril2025.mapping_file.txt",header=TRUE,row.names=1,sep="\t",stringsAsFactors=FALSE)
+```
+
+Check if your metadata file has been import successfully and correctly, the output will show a table of your metadata file (mapping file). *If you do not have header, you might start your first row with # (remove # and reload your mapping file).
+
+```{r}
+meta
+```
+
+```{r}
+head(meta)
+```
+
+Construct sample_data-class using imported metadata
+```{r warning=FALSE}
+sampleData <- sample_data(meta)
+```
+
+
+# To construct phyloseq object, otu table, taxonomy table, and sampleData are required. Phylogenetic tree can be included, but it is not necessary for constructing phyloseq object. Construct Phyloseq object called "Physeq"
+
+```{r warning=FALSE}
+physeq <- phyloseq(OTU,TAX,sampleData)
+physeq
+```
+
+
+```{r}
+physeq <- subset_taxa(physeq, Kingdom == "Fungi")
+physeq
+```
+
+#Selecting the WHO FPPL
+
+```{r }
+#critical group #non of the critical fungi was detected
+#physeq.1 = subset_taxa(physeq, Species == "Cryptococcus neoformans")
+#physeq.2 = subset_taxa(physeq, Species == "Candida auris")
+physeq.3 = subset_taxa(physeq, Species == "Aspergillus fumigatus")
+#physeq.4 = subset_taxa(physeq, Species == "Candida albicans")
+#physeq.100 = subset_taxa(physeq, Genus == "Candida")
+
+#High group #only candida tropicalis
+#physeq.5 = subset_taxa(physeq, Species == "Nakaseomyces glabrata")
+#physeq.6 = subset_taxa(physeq, Genus == "Histoplasma")
+#physeq.7 = subset_taxa(physeq, Species == "Candida tropicalis")
+#physeq.8 = subset_taxa(physeq, Species == "Candida parapsilosis")
+#physeq.17 = subset_taxa(physeq, Genus == "Madurella")
+#physeq.18 = subset_taxa(physeq, Species == "Falciformispora senegalensis")
+#physeq.19 = subset_taxa(physeq, Species == "Curvularia lunata")
+#physeq.20 = subset_taxa(physeq, Species == "Zopfia rosatii")
+physeq.21 = subset_taxa(physeq, Genus == "Acremonium")
+physeq.22 = subset_taxa(physeq, Genus == "Fusarium")
+
+#Mucorales
+#physeq.23 = subset_taxa(physeq, Order == "Mucorales")
+physeq.23 = subset_taxa(physeq, Genus == "Rhizopus")
+#physeq.24 = subset_taxa(physeq, Genus == "Mucor")
+#physeq.25 = subset_taxa(physeq, Genus == "Lichtheimia")
+
+#Medium group
+physeq.9 = subset_taxa(physeq, Genus == "Scedosporium")
+#physeq.10 = subset_taxa(physeq, Species == "Lomentospora prolificans")
+#physeq.11 = subset_taxa(physeq, Genus == "Coccidioides")
+#physeq.12 = subset_taxa(physeq, Species == "Pichia kudriavzevii")
+#physeq.13 = subset_taxa(physeq, Species == "Cryptococcus gattii")
+#physeq.14 = subset_taxa(physeq, Species == "Talaromyces marneffei")
+#physeq.15 = subset_taxa(physeq, Species == "Pneumocystis jirovecii")
+#physeq.16 = subset_taxa(physeq, Genus == "Paracoccidioides")
+```
+
+```{r }
+# Critical group: Candida albicans - High group: Acremonium, Fusarium, Mucorales - Medium group: Scedosporium, Pichia kudriavzevii
+physeq.merge = merge_phyloseq(physeq.3, physeq.9, physeq.21, physeq.22, physeq.23)
+
+physeq.merge
+```
+
+```{r}
+physeq = subset_samples(physeq.merge)
+```
+
+##Make taxonomy table into a matrix and relabel NA as unknown
+```{r}
+tax.fun <- as(tax_table(physeq.merge),"matrix")
+head(tax.fun)
+tax.fun[is.na(tax.fun)] <- "Unknown"
+head(tax.fun)
+```
+
+###Convert tax table back to phyloseq object and generate phyloseq object with new tax table
+```{r}
+TAX.fun <- tax_table(tax.fun)
+fun.3 <- phyloseq(sample_data(physeq),otu_table(physeq),TAX.fun)
+fun.3
+```
+
+
+###WHO FPPL Species
+```{r}
+glom.fun <- speedyseq::tax_glom(fun.3,taxrank = "Species")
+glom.fun
+```
+
+```{r}
+head(tax_table(glom.fun))
+```
+```{r}
+glom.fun.sped <- speedyseq::psmelt(glom.fun)
+```
+
+```{r}
+write.csv(glom.fun.sped, "dataWHONiar2025SpeciesSakon.csv", row.names=FALSE)
+```
+
+##plant##
+
+##Transform OTU table to show relative abundance
+##Samples can also be merged together by a variable in the mapping file
+
+```{r}
+fun.abund <- merge_samples(glom.fun, "crop")
+```
+
+
+```{r}
+sample_data(fun.abund)$crop <- factor(sample_names(fun.abund))
+fun.abund = transform_sample_counts(fun.abund, function(x) x / sum(x))
+fun.abund
+
+```
+
+##Merge taxonomic data with OTU table and mapping file (Can alter code to change taxonomic rank to Order, Class, Family, etc.) and change Phylum column from a factor to a character.
+
+```{r}
+data_glom.fun <- speedyseq::psmelt(fun.abund)
+data_glom.fun$Species <- as.character(data_glom.fun$Species)
+```
+
+```{r}
+write.csv(data_glom.fun, "dataspeciesWHONiar2025SakonNakhonfun.csv", row.names=FALSE)
+```
+
+
+##If a phylum has less than 1% abundance, phylum name is changed to <1% abund.
+
+```{r}
+#data_glom.fun$Species[data_glom.fun$Abundance < 0.01] <- "<0.1% abund."
+```
+
+Count the levels present in the Species column
+
+```{r}
+Count = length(unique(data_glom.fun$Species))
+Count
+```
+
+Print out unique phyla names for insertion into barplots in next step.
+
+```{r}
+unique((data_glom.fun$Species))
+```
+
+Create levels of phyla represented in barplot. 
+
+```{r}
+data_glom.fun$crop <- factor(data_glom.fun$crop, levels = c('Rubber_tree_A', 'Rubber_tree_B', 'Cassava', 'Sugarcane')) 
+```
+
+```{r}
+#data_glom.fun$zone <- factor(data_glom.fun$zone, levels = c('one', 'two', 'three', 'four', 'five', 'six', 'seven' ,'eight')) 
+```
+
+```{r}
+data_glom.fun$Species <- factor(data_glom.fun$Species, levels = c("Aspergillus fumigatus", "Fusarium sp.", "Fusarium oxysporum", "Fusarium avenaceum", "Fusarium concentricum", "Fusarium solani", "Fusarium equiseti", "Fusarium sambucinum", "Scedosporium aurantiacum", "Acremonium sp.", "Rhizopus microsporus"))
+```
+
+
+Creat the Barplot
+```{r}
+palet1 <- c("Aspergillus fumigatus" = "pink", "Fusarium sp." = "chartreuse4", "Fusarium oxysporum" = "darkgreen", "Fusarium avenaceum" = "green3", "Fusarium concentricum" = "seagreen3", "Fusarium solani" = "chartreuse1", "Fusarium equiseti" = "greenyellow", "Fusarium sambucinum" = "yellowgreen", "Scedosporium aurantiacum" = "yellow2", "Acremonium sp." = "blue3", "Rhizopus microsporus" = "darkorchid4")
+```
+
+
+```{r}
+taxcom_layer_genDL = ggplot(data = data_glom.fun, mapping = aes_string(x = "crop", y = "Abundance", fill = "Species" )) + 
+  geom_bar(stat="identity", position="fill") + 
+  ggtitle("WHO FPPL SakonNakhon (Species level) by crop")+
+  theme_pubr(border= TRUE) + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  scale_fill_manual(values = palet1) +  
+  theme(axis.text.x = element_text(size=12, angle = , hjust = ), axis.text.y = element_text(size=12, angle = , hjust = ), axis.title.x = element_text(size = 16), axis.title.y = element_text(size = 16))
+print(taxcom_layer_genDL + theme(legend.position="right") + guides(fill=guide_legend(nrow=11)))
+```
+
+
+```{r}
+tiff("SakonNakhonWHO_2025_Species_TaxonomyBarCrop.tif.tif", units="in", width = 8.5, height = 8.5, res = 1000)
+taxcom_layer_genDL + theme(legend.position="right") + guides(fill=guide_legend(nrow=11)) + theme(axis.text.x = element_text(angle = , hjust = ))
+dev.off()
+```
+
+##### Extract percentage data
+```{r}
+percentage_data <- data_glom.fun %>%
+  group_by(crop, Species) %>%
+  summarize(Percentage = sum(Abundance), .groups = "drop") %>%
+  group_by(crop) %>%
+  mutate(Percentage = Percentage / sum(Percentage) * 100)
+```
+
+
+# View the percentage data
+```{r}
+print(percentage_data)
+```
+
+
+```{r}
+write.csv(percentage_data, file = "WHOSpecies_Sakon2025_percentage.csv", row.names = FALSE)
+```
+
+

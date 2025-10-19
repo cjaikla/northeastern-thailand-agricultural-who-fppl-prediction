@@ -1,0 +1,292 @@
+---
+title: "Beta diversity PCoA data 2025"
+author: "Niar Ibrahim"
+date: "Updated 17 February 2025"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+###
+This is documentation and codes for Fungal diversity analysis in NICE Project dataset.
+
+###STEP1: Load all necessary packages for analysis
+More information about Phyloseq can be found at the following link: [Phyloseq](https://joey711.github.io/phyloseq/)
+If you get error in this step, you probably need to install any packages which causes error.
+
+
+#Download and Install Packages
+```{r warning=FALSE, message=FALSE}
+library(ape)
+library(vegan)
+library(plyr)
+library(dplyr)
+library(scales)
+library(grid)
+library(reshape2)
+library(phyloseq)
+library(magrittr)
+library(ggplot2)
+library(ggpubr)
+library(data.table)
+library(tidyr)
+library(tidyverse)
+library(ggforce)
+library(microViz)
+```
+
+
+###STEP1: Import ASV table for analysis using Phyloseq
+```{r}
+otus <- read.table("D:/OneDrive/Dokumen/R/R data/SakonNakhon/SakhonNakhonApril2025.final.txt",header=T,sep="\t",row.names=1)
+otumat <- as(as.matrix(otus), "matrix")
+OTU = otu_table(otumat, taxa_are_rows = TRUE)
+```
+
+###STEP2: Import taxonomy table for analysis using Phyloseq
+```{r}
+taxmat <- read.table("D:/OneDrive/Dokumen/R/R data/SakonNakhon/SakhonNakhonApril2025.taxonomy.fix.txt", header=T,sep="\t",row.names=1)
+taxmat <- as(as.matrix(taxmat),"matrix")
+TAX = tax_table(taxmat)
+```
+
+###STEP3: Import mapping file for analysis using Phyloseq
+
+1.Check mapping file before import to R, R will automatically change sample name that starts with number or contain “-” in sample name. If you get error in this step, you should check sample name first. 
+
+2.First column of first row should not start with #, R will not read the first row that starts with #
+
+3. You can choose which samples to include in analysis by indicating specific group in the column
+
+```{r}
+meta = read.table("SakhonNakhonApril2025.mapping_file.txt",header=TRUE,row.names=1,sep="\t",stringsAsFactors=FALSE)
+```
+
+
+Construct sample_data-class using imported metadata
+```{r warning=FALSE}
+sampleData <- sample_data(meta)
+```
+
+
+```{r warning=FALSE}
+physeq = phyloseq(OTU,TAX,sampleData)
+physeq
+```
+
+
+```{r}
+physeq <- subset_taxa(physeq, Kingdom == "Fungi")
+physeq
+```
+
+
+#Selecting the WHO FPPL
+```{r }
+#critical group #non of the critical fungi was detected
+#physeq.1 = subset_taxa(physeq, Species == "Cryptococcus neoformans")
+#physeq.2 = subset_taxa(physeq, Species == "Candida auris")
+physeq.3 = subset_taxa(physeq, Species == "Aspergillus fumigatus")
+#physeq.4 = subset_taxa(physeq, Species == "Candida albicans")
+#physeq.100 = subset_taxa(physeq, Genus == "Candida")
+
+#High group #only candida tropicalis
+#physeq.5 = subset_taxa(physeq, Species == "Nakaseomyces glabrata")
+#physeq.6 = subset_taxa(physeq, Genus == "Histoplasma")
+#physeq.7 = subset_taxa(physeq, Species == "Candida tropicalis")
+#physeq.8 = subset_taxa(physeq, Species == "Candida parapsilosis")
+#physeq.17 = subset_taxa(physeq, Genus == "Madurella")
+#physeq.18 = subset_taxa(physeq, Species == "Falciformispora senegalensis")
+#physeq.19 = subset_taxa(physeq, Species == "Curvularia lunata")
+#physeq.20 = subset_taxa(physeq, Species == "Zopfia rosatii")
+physeq.21 = subset_taxa(physeq, Genus == "Acremonium")
+physeq.22 = subset_taxa(physeq, Genus == "Fusarium")
+
+#Mucorales
+#physeq.23 = subset_taxa(physeq, Order == "Mucorales")
+physeq.23 = subset_taxa(physeq, Genus == "Rhizopus")
+#physeq.24 = subset_taxa(physeq, Genus == "Mucor")
+#physeq.25 = subset_taxa(physeq, Genus == "Lichtheimia")
+
+#Medium group
+physeq.9 = subset_taxa(physeq, Genus == "Scedosporium")
+#physeq.10 = subset_taxa(physeq, Species == "Lomentospora prolificans")
+#physeq.11 = subset_taxa(physeq, Genus == "Coccidioides")
+#physeq.12 = subset_taxa(physeq, Species == "Pichia kudriavzevii")
+#physeq.13 = subset_taxa(physeq, Species == "Cryptococcus gattii")
+#physeq.14 = subset_taxa(physeq, Species == "Talaromyces marneffei")
+#physeq.15 = subset_taxa(physeq, Species == "Pneumocystis jirovecii")
+#physeq.16 = subset_taxa(physeq, Genus == "Paracoccidioides")
+```
+
+
+```{r}
+# Critical group: Candida albicans - High group: Acremonium, Fusarium, Mucorales - Medium group: Scedosporium, Pichia kudriavzevii
+physeq.merge = merge_phyloseq(physeq.3, physeq.9, physeq.21, physeq.22, physeq.23)
+
+physeq.merge
+```
+
+
+```{r}
+sample_data(physeq.merge)$crop = factor(sample_data(physeq.merge)$crop, levels = c('Rubber_tree_A', 'Rubber_tree_B', 'Cassava', 'Sugarcane'))
+
+```
+
+
+```{r}
+# 🔹 Keep only taxa that appear in at least one sample (non-zero total abundance)
+physeq.merge <- prune_taxa(taxa_sums(physeq.merge) > 0, physeq.merge)
+```
+
+
+
+```{r}
+# ----------------------------
+# Alternative: Aitchison CLR + PCoA
+# ----------------------------
+# 1️⃣ CLR Transformation (Aitchison)
+# ----------------------------
+physeq.clr <- phyloseq::transform_sample_counts(physeq.merge, function(x) x + 1) %>%
+  microViz::tax_transform("clr", rank = "Species")
+```
+
+
+```{r}
+# ----------------------------
+# 2️⃣ PCoA Ordination (Euclidean)
+# ----------------------------
+ord_clr <- ordinate(physeq.clr, method = "PCoA", distance = "euclidean")
+```
+
+
+```{r}
+# ----------------------------
+# 3️⃣ Prepare data for plotting
+# ----------------------------
+plot_df <- as.data.frame(ord_clr$vectors)
+plot_df$SampleID <- rownames(plot_df)
+```
+
+
+```{r}
+meta_df <- data.frame(sample_data(physeq.clr))
+meta_df$SampleID <- rownames(meta_df)
+```
+
+
+```{r}
+# Clean duplicates and merge
+meta_df_clean <- meta_df[, !duplicated(colnames(meta_df))]
+plot_df <- merge(plot_df, meta_df_clean, by = "SampleID", all.x = TRUE)
+```
+
+```{r}
+plot_df$crop <- plot_df$crop
+```
+
+```{r}
+colnames(plot_df)
+```
+
+```{r}
+# ✅ Fix crop column
+# (choose the correct column that exists — likely crop.x or crop.y)
+if ("crop.x" %in% colnames(plot_df)) {
+  plot_df$crop <- plot_df$crop.x
+} else if ("crop.y" %in% colnames(plot_df)) {
+  plot_df$crop <- plot_df$crop.y
+} else {
+  stop("No crop column found! Check your metadata column names.")
+}
+```
+
+
+```{r}
+# ----------------------------
+# 4️⃣ PERMANOVA (Aitchison distance)
+# ----------------------------
+dist_euc <- phyloseq::distance(physeq.clr, method = "euclidean")
+set.seed(123)
+permanova <- adonis2(dist_euc ~ crop, data = plot_df)
+```
+
+
+```{r}
+p_value <- format(permanova$`Pr(>F)`[1], digits = 3)
+```
+
+
+```{r}
+# ----------------------------
+# 5️⃣ PCoA Plot with geom_mark_hull and p-value
+# ----------------------------
+p_clr <- ggplot(plot_df, aes(Axis.1, Axis.2, color = crop)) +
+  geom_point(size = 2.5, alpha = 0.9) +
+  geom_mark_ellipse(
+  aes(fill = crop, group = crop),
+  alpha = 0.2,
+  color = NA,
+  label.fontsize = 9,
+  label.fontface = "bold",
+  label.buffer = unit(0.25, "lines"),
+  label.fill = "white",
+  label.colour = "black",
+  show.legend = FALSE
+) +
+  ggtitle("PCoA (Aitchison CLR) of WHO FPPL 11 species" ) +
+  annotate(
+    "text",
+    label = "bold(paste('PERMANOVA, ', italic('p'), ' = 0.002'))", 
+    parse = TRUE, 
+    size = 3,
+    hjust = 0,
+    vjust = 1,
+    x = min(plot_df$Axis.1) * 1.5,
+    y = max(plot_df$Axis.2) * 2.2,
+  ) +
+  coord_equal() +
+  theme_minimal(base_size = 16) +
+  theme(
+    legend.position = "right",  # move legend inside bottom-right
+    legend.background = element_rect(fill = "white", color = NA),
+    legend.key.size = unit(0.6, "cm"),
+    legend.title = element_text(face = "bold", size = 11),
+    legend.text = element_text(size = 10),
+    plot.title = element_text(size = 12, hjust = 0.5, vjust = 1),
+    axis.title = element_text(face = "bold", size = 13),
+    axis.text = element_text(size = 11, color = "black"),
+    plot.margin = margin(5, 5, 5, 5),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_line(color = "grey90", linewidth = 0.4)
+  )
+
+p_clr
+```
+
+#Save to jpeg file
+```{r warning=FALSE}
+jpeg("D:/OneDrive/Dokumen/R/R data/SakonNakhon/Abundance - Distribution/WHOFPPL Beta diversity PCoA-Species-Aitchison SakonNakhon 2025.jpeg",units = "in",  width = 6, height = 6, res = 1000)
+p_clr
+dev.off()
+```
+
+
+```{r}
+# Convert to dataframe
+clr_df <- speedyseq::psmelt(physeq.clr)
+
+# Count unique species per crop
+clr_species_per_crop <- clr_df %>%
+  dplyr::group_by(crop) %>%
+  dplyr::summarize(n_species = dplyr::n_distinct(Species))
+
+clr_species_per_crop
+```
+
+
+```{r}
+ntaxa(physeq.clr)
+```
