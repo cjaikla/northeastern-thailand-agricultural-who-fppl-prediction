@@ -1,0 +1,262 @@
+---
+title: "Venn diagram data 2025"
+author: "Niar Ibrahim"
+date: "April 01, 2024"
+output: html_document
+---
+
+```{r}
+install.packages("ggVennDiagram")   # only once
+```
+
+
+#Load all Packages
+```{r}
+library(ape)
+library(vegan)
+library(plyr)
+library(dplyr)
+library(scales)
+library(grid)
+library(reshape2)
+library(phyloseq)
+library(magrittr)
+library(ggplot2)
+library(ggpubr)
+library(data.table)
+library(tidyr)
+library(tidyverse)
+library(multcompView)
+library(VennDiagram)
+library(phyloseq)
+library(coin)
+library(reshape2)
+library(ggnewscale)
+library(ggvenn)
+library(ggVennDiagram)
+```
+
+```{r}
+otus <- read.table("SakhonNakhonApril2025.final.txt",header=T,sep="\t",row.names=1)
+otumat <- as(as.matrix(otus), "matrix")
+OTU <- otu_table(otumat, taxa_are_rows = TRUE)
+```
+
+
+```{r}
+taxmat <- read.table("SakhonNakhonApril2025.taxonomy.fix.txt", header=T,sep="\t",row.names=1)
+taxmat <- as(as.matrix(taxmat),"matrix")
+TAX <- tax_table(taxmat)
+TAX
+```
+
+```{r}
+meta <- read.table("SakhonNakhonApril2025.mapping_file.txt",header=TRUE,row.names=1,sep="\t",stringsAsFactors=FALSE)
+meta
+head(meta)
+```
+
+```{r}
+sampleData <- sample_data(meta)
+```
+
+
+```{r}
+physeq <- phyloseq(OTU,TAX,sampleData)
+physeq
+physeq <- subset_taxa(physeq, Kingdom == "Fungi")
+physeq
+```
+
+
+
+
+```{r }
+#critical group #non of the critical fungi was detected
+#physeq.1 = subset_taxa(physeq, Species == "Cryptococcus neoformans")
+#physeq.2 = subset_taxa(physeq, Species == "Candida auris")
+physeq.3 = subset_taxa(physeq, Species == "Aspergillus fumigatus")
+#physeq.4 = subset_taxa(physeq, Species == "Candida albicans")
+#physeq.100 = subset_taxa(physeq, Genus == "Candida")
+
+#High group #only candida tropicalis
+#physeq.5 = subset_taxa(physeq, Species == "Nakaseomyces glabrata")
+#physeq.6 = subset_taxa(physeq, Genus == "Histoplasma")
+#physeq.7 = subset_taxa(physeq, Species == "Candida tropicalis")
+#physeq.8 = subset_taxa(physeq, Species == "Candida parapsilosis")
+#physeq.17 = subset_taxa(physeq, Genus == "Madurella")
+#physeq.18 = subset_taxa(physeq, Species == "Falciformispora senegalensis")
+#physeq.19 = subset_taxa(physeq, Species == "Curvularia lunata")
+#physeq.20 = subset_taxa(physeq, Species == "Zopfia rosatii")
+physeq.21 = subset_taxa(physeq, Genus == "Acremonium")
+physeq.22 = subset_taxa(physeq, Genus == "Fusarium")
+
+#Mucorales
+#physeq.23 = subset_taxa(physeq, Order == "Mucorales")
+physeq.23 = subset_taxa(physeq, Genus == "Rhizopus")
+#physeq.24 = subset_taxa(physeq, Genus == "Mucor")
+#physeq.25 = subset_taxa(physeq, Genus == "Lichtheimia")
+
+#Medium group
+physeq.9 = subset_taxa(physeq, Genus == "Scedosporium")
+#physeq.10 = subset_taxa(physeq, Species == "Lomentospora prolificans")
+#physeq.11 = subset_taxa(physeq, Genus == "Coccidioides")
+#physeq.12 = subset_taxa(physeq, Species == "Pichia kudriavzevii")
+#physeq.13 = subset_taxa(physeq, Species == "Cryptococcus gattii")
+#physeq.14 = subset_taxa(physeq, Species == "Talaromyces marneffei")
+#physeq.15 = subset_taxa(physeq, Species == "Pneumocystis jirovecii")
+#physeq.16 = subset_taxa(physeq, Genus == "Paracoccidioides")
+```
+
+```{r }
+# Critical group: Candida albicans - High group: Acremonium, Fusarium, Mucorales - Medium group: Scedosporium, Pichia kudriavzevii
+physeq.merge = merge_phyloseq(physeq.3, physeq.9, physeq.21, physeq.22, physeq.23)
+
+physeq.merge
+```
+
+
+```{r}
+physeq.who = subset_samples(physeq.merge)
+```
+
+
+##Make taxonomy table into a matrix and relabel NA as unknown
+```{r}
+tax.fun <- as(tax_table(physeq.who),"matrix")
+head(tax.fun)
+tax.fun[is.na(tax.fun)] <- "Unknown"
+head(tax.fun)
+```
+
+###Convert tax table back to phyloseq object and generate phyloseq object with new tax table
+```{r}
+TAX.fun <- tax_table(tax.fun)
+fun.3 <- phyloseq(sample_data(physeq.who),otu_table(physeq.who),TAX.fun)
+fun.3
+```
+
+
+```{r}
+glom.fun <- speedyseq::tax_glom(fun.3,taxrank = "Species")
+glom.fun
+```
+
+```{r}
+head(tax_table(glom.fun))
+```
+
+##Transform OTU table to show relative abundance
+##Samples can also be merged together by a variable in the mapping file
+
+```{r}
+
+fun.abund <- merge_samples(glom.fun, "crop")
+sample_data(fun.abund)$crop <- factor(sample_names(fun.abund))
+fun.abund = transform_sample_counts(fun.abund, function(x) x / sum(x))
+fun.abund
+
+```
+
+
+```{r}
+data_glom.fun <- speedyseq::psmelt(fun.abund)
+```
+
+
+```{r}
+data_glom.fun$Genus <- as.character(data_glom.fun$Genus)
+```
+
+##If a phylum has less than 1% abundance, phylum name is changed to <1% abund.
+
+```{r}
+#data_glom.fun$Genus[data_glom.fun$Abundance < 0.01] <- "<0.1% abund."
+```
+
+Count the levels present in the Phylum column
+
+```{r}
+Count = length(unique(data_glom.fun$Species))
+Count
+```
+
+Print out unique phyla names for insertion into barplots in next step.
+
+```{r}
+unique((data_glom.fun$Species))
+```
+
+```{r}
+# Keep only species with positive abundance
+venn_data <- list(
+  Rubber_tree_A = unique(data_glom.fun$Species[data_glom.fun$crop == "Rubber_tree_A" & data_glom.fun$Abundance > 0]),
+  Rubber_tree_B = unique(data_glom.fun$Species[data_glom.fun$crop == "Rubber_tree_B" & data_glom.fun$Abundance > 0]),
+  Cassava = unique(data_glom.fun$Species[data_glom.fun$crop == "Cassava" & data_glom.fun$Abundance > 0]),
+  Sugarcane = unique(data_glom.fun$Species[data_glom.fun$crop == "Sugarcane" & data_glom.fun$Abundance > 0])
+)
+```
+
+```{r}
+venn_data <- list(
+  Rubber_tree_A = unique(data_glom.fun$Species[data_glom.fun$crop == "Rubber_tree_A" & data_glom.fun$Abundance > 0]),
+  Rubber_tree_B = unique(data_glom.fun$Species[data_glom.fun$crop == "Rubber_tree_B" & data_glom.fun$Abundance > 0]),
+  Cassava       = unique(data_glom.fun$Species[data_glom.fun$crop == "Cassava"       & data_glom.fun$Abundance > 0]),
+  Sugarcane     = unique(data_glom.fun$Species[data_glom.fun$crop == "Sugarcane"     & data_glom.fun$Abundance > 0])
+)
+```
+
+
+```{r}
+# Rename for nicer label display
+names(venn_data) <- c("Rubber tree A", "Rubber tree B", "Cassava", "Sugarcane")
+```
+
+
+```{r}
+# Simple, clean Venn diagram using ggvenn
+venn <- ggvenn(
+  venn_data,
+  fill_color = c("salmon", "lawngreen", "turquoise", "purple"),  # your colors
+  fill_alpha = 0.6,
+  stroke_size = 0.6,
+  text_size = 9,
+  set_name_size = 0,
+  show_percentage = FALSE
+) +
+  labs(title = "SakonNakhon WHO-FPPL Venn by crop 2025") +
+  theme(
+    plot.title = element_text(hjust = 0.5,size = 12),
+    plot.margin = margin(1, 1, 1, 1),
+    text = element_text(color = "black"),
+        # Make crop labels bold
+    plot.tag = element_text(face = "bold")  # fallback for ggvenn internal label layer
+  )
+
+
+# Manually add bold crop labels (adjust x/y as needed)
+venn + 
+  annotate("text", x = -1.8,  y = 0.9, label = "Rubber tree A",  size = 5, fontface = "bold", color = "salmon4") +
+  annotate("text", x =  1,  y = 1.2, label = "Cassava",   size = 5, fontface = "bold", color = "turquoise4") +
+  annotate("text", x = 1.8,  y = 0.9, label = "Sugarcane", size = 5, fontface = "bold", color = "purple4") +
+  annotate("text", x =  -1.2,  y = 1.2, label = "Rubber tree B",  size = 5, fontface = "bold", color = "green4")
+```
+
+
+#Save to jpeg file
+```{r}
+jpeg("D:/OneDrive/Dokumen/R/R data/SakonNakhon/Abundance - Distribution/VennGenusWHO2025.jpeg",units = "in", width = 14, height = 8, res = 1000 )
+venn + 
+  annotate("text", x = -1.6,  y = 0.9, label = "Rubber tree A",  size = 7, fontface = "bold", color = "salmon4") +
+  annotate("text", x =  1,  y = 1.2, label = "Cassava",   size = 7, fontface = "bold", color = "turquoise4") +
+  annotate("text", x = 1.6,  y = 0.9, label = "Sugarcane", size = 7, fontface = "bold", color = "purple4") +
+  annotate("text", x =  -1.2,  y = 1.2, label = "Rubber tree B",  size = 7, fontface = "bold", color = "green4")
+dev.off()
+```
+
+
+
+
+
+
+
