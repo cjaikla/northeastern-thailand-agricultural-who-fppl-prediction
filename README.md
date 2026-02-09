@@ -1,6 +1,6 @@
 # northeastern-thailand-agricultural-who-fppl-prediction
 
-## Predicting Safe Agricultural Soils: Environmental Conditions to Predict Human Pathogenic Fungi in Plant-Associated Mycobiomes Using Machine Learning and ITS Metabarcoding
+## Predicting the absence of WHO fungal priority pathogens in agricultural soils using machine learning and ITS metabarcoding
 
 Authors: Chayawan Jaikla⧧ , Syahriar Nur Maulana Malik Ibrahim⧧, Nuttapon Pombubpa
 
