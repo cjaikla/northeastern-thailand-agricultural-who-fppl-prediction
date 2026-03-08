@@ -2,7 +2,7 @@
 
 ## Predicting the absence of WHO fungal priority pathogens in agricultural soils using machine learning and ITS metabarcoding
 
-Authors: Chayawan Jaikla⧧ , Syahriar Nur Maulana Malik Ibrahim⧧, Nuttapon Pombubpa
+Authors: Syahriar Nur Maulana Malik Ibrahim⧧, Chayawan Jaikla⧧ , Nuttapon Pombubpa
 
 ⧧ These authors contributed equally to this work
 
