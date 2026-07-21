@@ -6,6 +6,8 @@ Authors: Syahriar Nur Maulana Malik Ibrahim⧧, Chayawan Jaikla⧧ , Nuttapon Po
 
 ⧧ These authors contributed equally to this work
 
+**Published article:** [https://doi.org/10.1007/s00114-026-02134-y](https://doi.org/10.1007/s00114-026-02134-y)
+
 ## Overview
 
 Environmental fungal pathogens pose significant risks to human and agricultural health, especially in regions with intensive farming and climate variability. The World Health Organization (WHO) recognizes pathogens such as *Candida tropicalis*, *Talaromyces marneffei*, and *Mucor* spp. in the Fungal Priority Pathogens List (FPPL), and these pathogens have been detected in both clinical and environmental samples in Thailand.
