@@ -58,7 +58,7 @@ This workflow uses R fo data processing and analysis.
 
 If you use this code or data, please cite:
 
-<placeholder>
+Ibrahim, S.N.M.M., Jaikla, C. & Pombubpa, N. Predicting the absence of World Health Organization fungal priority pathogens in agricultural soils using machine learning and ITS metabarcoding. Sci Nat 113, 88 (2026). https://doi.org/10.1007/s00114-026-02134-y
 
 ## License
 
